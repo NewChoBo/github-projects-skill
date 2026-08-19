@@ -112,3 +112,27 @@ jobs:
           gh release view "$RELEASE_TAG" \
             --json tagName,isDraft,isPrerelease,url,targetCommitish \
             --jq '{tagName,isDraft,isPrerelease,url,targetCommitish}'
+
+      - name: Preview published skill
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RELEASE_TAG: ${{ github.ref_name }}
+        run: gh skill preview NewChoBo/github-projects-skill "github-projects@$RELEASE_TAG"
+
+      - name: Verify Codex installation
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RELEASE_TAG: ${{ github.ref_name }}
+        run: |
+          set -euo pipefail
+          gh skill install NewChoBo/github-projects-skill "github-projects@$RELEASE_TAG" --agent codex --scope user --force
+          gh skill list --agent codex
+
+      - name: Verify Claude Code installation
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RELEASE_TAG: ${{ github.ref_name }}
+        run: |
+          set -euo pipefail
+          gh skill install NewChoBo/github-projects-skill "github-projects@$RELEASE_TAG" --agent claude-code --scope user --force
+          gh skill list --agent claude-code
