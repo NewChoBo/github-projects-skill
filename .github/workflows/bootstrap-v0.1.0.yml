@@ -44,30 +44,36 @@ jobs:
           git checkout "$MAIN_SHA"
           gh skill publish --dry-run
 
-      - name: Create v0.1.0 tag at current main
+      - name: Ensure v0.1.0 tag at current main
         env:
           RELEASE_TAG: v0.1.0
         run: |
           set -euo pipefail
-          if git ls-remote --exit-code --tags origin "refs/tags/$RELEASE_TAG" >/dev/null 2>&1; then
-            echo "::error::Tag $RELEASE_TAG already exists."
-            exit 1
+          git fetch origin --tags --force
+          if git rev-parse "$RELEASE_TAG" >/dev/null 2>&1; then
+            test "$(git rev-list -n 1 "$RELEASE_TAG")" = "$MAIN_SHA"
+            echo "Tag $RELEASE_TAG already exists at current main."
+          else
+            git config user.name 'github-actions[bot]'
+            git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+            git tag -a "$RELEASE_TAG" "$MAIN_SHA" -m "$RELEASE_TAG"
+            git push origin "refs/tags/$RELEASE_TAG"
           fi
-          git config user.name 'github-actions[bot]'
-          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          git tag -a "$RELEASE_TAG" "$MAIN_SHA" -m "$RELEASE_TAG"
-          git push origin "refs/tags/$RELEASE_TAG"
 
-      - name: Create GitHub Release
+      - name: Ensure GitHub Release
         env:
           GH_TOKEN: ${{ github.token }}
           RELEASE_TAG: v0.1.0
         run: |
           set -euo pipefail
-          gh release create "$RELEASE_TAG" \
-            --verify-tag \
-            --title "$RELEASE_TAG" \
-            --generate-notes
+          if gh release view "$RELEASE_TAG" >/dev/null 2>&1; then
+            echo "Release $RELEASE_TAG already exists."
+          else
+            gh release create "$RELEASE_TAG" \
+              --verify-tag \
+              --title "$RELEASE_TAG" \
+              --generate-notes
+          fi
 
       - name: Verify tag and release
         env:
@@ -78,3 +84,27 @@ jobs:
           git fetch origin --tags --force
           test "$(git rev-list -n 1 "$RELEASE_TAG")" = "$MAIN_SHA"
           gh release view "$RELEASE_TAG" --json tagName,isDraft,isPrerelease,url,targetCommitish
+
+      - name: Persist verification marker
+        env:
+          RELEASE_TAG: v0.1.0
+        run: |
+          set -euo pipefail
+          git fetch origin "$GITHUB_REF_NAME" --force
+          git checkout -B "$GITHUB_REF_NAME" "origin/$GITHUB_REF_NAME"
+          mkdir -p .github/release-verification
+          cat > ".github/release-verification/$RELEASE_TAG.txt" <<EOF
+          release=$RELEASE_TAG
+          main_sha=$MAIN_SHA
+          verified_by=github-actions
+          verification=skill-dry-run+tag+release-view
+          EOF
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add ".github/release-verification/$RELEASE_TAG.txt"
+          if git diff --cached --quiet; then
+            echo 'Verification marker already current.'
+          else
+            git commit -m "chore: verify $RELEASE_TAG release"
+            git push origin "$GITHUB_REF_NAME"
+          fi
