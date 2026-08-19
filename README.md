@@ -23,6 +23,14 @@ The skill defines how an agent should:
 - verify every material write by reading the resulting state back;
 - fail truthfully when the runtime does not expose GitHub Projects capability.
 
+Detailed coverage is documented in:
+
+```text
+skills/github-projects/references/capability-matrix.md
+```
+
+The intended skill surface includes Project lifecycle, items/drafts, fields/values, views, Project workflows, Project-level status updates, repository/team links, collaborators/permissions, templates, archival/deletion, and cross-repository coordination. Actual technical support remains capability-dependent: the skill uses an available GitHub Projects MCP, `gh project`, REST, or GraphQL backend rather than pretending every backend exposes every operation.
+
 ## Capability boundary
 
 This repository does **not** implement a GitHub Projects API wrapper, MCP server, authentication service, scheduler, or orchestration runtime.
@@ -59,7 +67,27 @@ gh skill install NewChoBo/github-projects github-projects --agent codex --scope 
 
 When this repository is renamed to `NewChoBo/github-projects-skill`, use the new repository name for future installs. The skill name remains `github-projects`.
 
-## Validate and publish
+## CI/CD
+
+Pull requests and changes to `main` that touch the skill run:
+
+```bash
+gh skill publish --dry-run
+```
+
+through `.github/workflows/skill-ci.yml`.
+
+A versioned release is created from `main` through the `Release Skill` workflow. Run the workflow manually and provide a SemVer-style tag such as `v0.1.0`. The release pipeline:
+
+1. validates the requested tag;
+2. verifies the runner supports `gh skill`;
+3. runs `gh skill publish --dry-run`;
+4. creates the version tag and GitHub Release with generated release notes;
+5. reads the release back to verify publication.
+
+The release workflow deliberately separates validation from release creation. The Agent Skills CLI is currently a preview feature, so CI fails explicitly if the GitHub-hosted runner does not provide `gh skill`.
+
+## Local validation and publishing
 
 From a local clone of this repository:
 
@@ -67,13 +95,13 @@ From a local clone of this repository:
 gh skill publish --dry-run
 ```
 
-After validation, publish a versioned GitHub Release, for example:
+The official interactive/non-interactive publisher can also be used directly when desired:
 
 ```bash
 gh skill publish --tag v0.1.0
 ```
 
-Consumers can then install or pin a tagged version instead of following the default branch.
+Consumers can install or pin a tagged version instead of following the default branch.
 
 ## Portability
 
