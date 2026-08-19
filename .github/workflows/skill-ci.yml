@@ -1,0 +1,40 @@
+name: Skill CI
+
+on:
+  pull_request:
+    paths:
+      - 'skills/**'
+      - '.github/workflows/skill-ci.yml'
+  push:
+    branches:
+      - main
+    paths:
+      - 'skills/**'
+      - '.github/workflows/skill-ci.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Check GitHub CLI Agent Skills support
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          gh --version
+          if ! gh skill --help >/dev/null 2>&1; then
+            echo '::error::This runner does not provide a GitHub CLI version with gh skill support (GitHub CLI 2.90.0+ required).'
+            exit 1
+          fi
+
+      - name: Validate Agent Skill
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh skill publish --dry-run
