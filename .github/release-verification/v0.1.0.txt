@@ -1,4 +1,0 @@
-release=v0.1.0
-main_sha=78d543409f6c7200d20fbfb8cec2610ba3555078
-verified_by=github-actions
-verification=skill-dry-run+tag+release-view
