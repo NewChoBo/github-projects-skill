@@ -6,8 +6,6 @@ on:
       - 'skills/**'
       - '.github/workflows/skill-ci.yml'
   push:
-    branches:
-      - main
     paths:
       - 'skills/**'
       - '.github/workflows/skill-ci.yml'
