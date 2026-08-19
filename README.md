@@ -2,7 +2,8 @@
 
 Provider-neutral Agent Skill for operating GitHub Projects safely and consistently from AI agents such as GPT/Codex, Claude Code, and other Agent Skills-compatible runtimes.
 
-> Repository name may later change to `github-projects-skill`. The canonical skill identity remains `github-projects`.
+Repository: `NewChoBo/github-projects-skill`  
+Canonical skill identity: `github-projects`
 
 ## Skill
 
@@ -44,32 +45,36 @@ GitHub CLI can discover this repository through the standard `skills/*/SKILL.md`
 Preview without installing:
 
 ```bash
-gh skill preview NewChoBo/github-projects github-projects
+gh skill preview NewChoBo/github-projects-skill github-projects
 ```
 
 Install for Codex:
 
 ```bash
-gh skill install NewChoBo/github-projects github-projects --agent codex
+gh skill install NewChoBo/github-projects-skill github-projects --agent codex
 ```
 
 Install for Claude Code:
 
 ```bash
-gh skill install NewChoBo/github-projects github-projects --agent claude-code
+gh skill install NewChoBo/github-projects-skill github-projects --agent claude-code
 ```
 
 Install at user scope when the skill should be available outside one repository:
 
 ```bash
-gh skill install NewChoBo/github-projects github-projects --agent codex --scope user
+gh skill install NewChoBo/github-projects-skill github-projects --agent codex --scope user
 ```
 
-When this repository is renamed to `NewChoBo/github-projects-skill`, use the new repository name for future installs. The skill name remains `github-projects`.
+Pin a release when reproducibility matters:
+
+```bash
+gh skill install NewChoBo/github-projects-skill github-projects@v0.1.0 --agent codex --scope user
+```
 
 ## CI/CD
 
-Pull requests and changes to `main` that touch the skill run:
+Pull requests and pushes that touch the skill run:
 
 ```bash
 gh skill publish --dry-run
@@ -77,17 +82,28 @@ gh skill publish --dry-run
 
 through `.github/workflows/skill-ci.yml`.
 
-A versioned release is created from `main` through the `Release Skill` workflow. Run the workflow manually and provide a SemVer-style tag such as `v0.1.0`. The release pipeline:
+Releases are **tag-driven**. The only action needed to publish a version is to push a SemVer tag that points to the current `main` commit, for example:
 
-1. validates the requested tag;
-2. verifies the runner supports `gh skill`;
-3. runs `gh skill publish --dry-run`;
-4. creates the version tag and GitHub Release with generated release notes;
-5. reads the release back to verify publication.
+```bash
+git checkout main
+git pull --ff-only
+git tag v0.1.0
+git push origin v0.1.0
+```
 
-The release workflow deliberately separates validation from release creation. The Agent Skills CLI is currently a preview feature, so CI fails explicitly if the GitHub-hosted runner does not provide `gh skill`.
+The `Release Skill` workflow then:
 
-## Local validation and publishing
+1. verifies the tag is SemVer (`vMAJOR.MINOR.PATCH` or a prerelease such as `v0.2.0-rc.1`);
+2. verifies the tag points to the current `main` commit;
+3. verifies the runner supports `gh skill`;
+4. validates the skill with `gh skill publish --dry-run` against the tagged snapshot;
+5. creates the GitHub Release from the existing tag with generated release notes;
+6. automatically marks prerelease tags containing `-` as GitHub prereleases;
+7. reads the release back to verify publication.
+
+A tag that does not point to current `main`, an invalid Skill, or an existing Release fails closed and does not create a replacement release.
+
+## Local validation
 
 From a local clone of this repository:
 
@@ -95,13 +111,7 @@ From a local clone of this repository:
 gh skill publish --dry-run
 ```
 
-The official interactive/non-interactive publisher can also be used directly when desired:
-
-```bash
-gh skill publish --tag v0.1.0
-```
-
-Consumers can install or pin a tagged version instead of following the default branch.
+Consumers can install or pin a tagged release instead of following the default branch.
 
 ## Portability
 
